@@ -20,7 +20,6 @@ var MethodMap = map[string]Operation{
 	"/gripql.Query/GetEdge":      Read,
 	"/gripql.Query/GetTimestamp": Read,
 	"/gripql.Query/GetSchema":    Read,
-	"/gripql.Query/GetMapping":   Read,
 	"/gripql.Query/ListGraphs":   Read,
 	"/gripql.Query/ListIndices":  Read,
 	"/gripql.Query/ListLabels":   Read,
@@ -46,7 +45,6 @@ var MethodMap = map[string]Operation{
 	"/gripql.Edit/DeleteIndex":   Write,
 	"/gripql.Edit/AddSchema":     Write,
 	"/gripql.Edit/AddJsonSchema": Write,
-	"/gripql.Edit/AddMapping":    Write,
 	"/gripql.Edit/SampleSchema":  Write, //Maybe exec?
 
 	"/gripql.Configure/StartPlugin": Admin,

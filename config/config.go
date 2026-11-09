@@ -14,7 +14,6 @@ import (
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/mongo"
 	"github.com/bmeg/grip/psql"
-	"github.com/bmeg/grip/schema"
 	"github.com/bmeg/grip/sqlite"
 	"github.com/bmeg/grip/util"
 	"github.com/bmeg/grip/util/duration"
@@ -213,29 +212,6 @@ func ParseConfigFile(relpath string, conf *Config) error {
 	if err != nil {
 		return fmt.Errorf("failed to parse config at path %s: \n%v", path, err)
 	}
-	for i := range conf.Drivers {
-		if conf.Drivers[i].Gripper != nil {
-			if conf.Drivers[i].Gripper.MappingFile != "" {
-				gpath := filepath.Join(filepath.Dir(path), conf.Drivers[i].Gripper.MappingFile)
-
-				gsource, err := os.ReadFile(gpath)
-				if err != nil {
-					return fmt.Errorf("failed to read graph at path %s: \n%v", gpath, err)
-				}
-				// Parse file
-				data := map[string]any{}
-				err = yaml.Unmarshal(gsource, &data)
-				if err != nil {
-					return fmt.Errorf("failed to parse config at path %s: \n%v", path, err)
-				}
-				graph, err := schema.GraphMapToProto(data)
-				if err != nil {
-					return fmt.Errorf("failed to parse config at path %s: \n%v", path, err)
-				}
-				conf.Drivers[i].Gripper.Mapping, _ = gripper.GraphToConfig(graph)
-			}
-		}
-	}
 	return nil
 }
 
@@ -308,8 +284,8 @@ func DeepCopyRedactedConfig(conf *Config) *Config {
 			cpyDriver.Sqlite = &sqlite
 		}
 		if driver.Gripper != nil {
-			gripper := &gripper.Config{MappingFile: "[REDACTED]"}
-			cpyDriver.Gripper = gripper
+			federation := *driver.Gripper
+			cpyDriver.Gripper = &federation
 		}
 		cpyConf.Drivers[k] = cpyDriver
 	}

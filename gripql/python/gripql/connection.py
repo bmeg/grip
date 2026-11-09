@@ -89,16 +89,6 @@ class Connection(BaseConnection):
         raise_for_status(response)
         return response.json()
 
-    def getMapping(self, name):
-        """
-        Get a graph mapping.
-        """
-        response = self.session.get(
-            self.url + "/" + name + "/mapping"
-        )
-        raise_for_status(response)
-        return response.json()
-
     def postMapping(self, name, vertices, edges):
         """
         Post a graph mapping
@@ -115,17 +105,6 @@ class Connection(BaseConnection):
         Get a graph handle.
         """
         return Graph(self.base_url, name, self.user, self.password, self.token, self.credential_file)
-
-    def listTables(self):
-        """
-        List graphs.
-        """
-        response = self.session.get(
-            self.base_url + "/v1/table"
-        )
-        raise_for_status(response)
-        for line in response.iter_lines(chunk_size=None):
-            yield json.loads(line)
 
     def listDrivers(self):
         """

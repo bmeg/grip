@@ -50,9 +50,8 @@ type GripServer struct {
 	graphMap      map[string]string        //mapping from graph name to graph database driver
 	conf          *config.Config           //global configuration
 	schemas       map[string]*gripql.Graph //cached schemas
-	mappings      map[string]*gripql.Graph //cached gripper graph mappings
 	plugins       map[string]*Plugin
-	sources       map[string]gripper.GRIPSourceClient
+	sources       *gripper.Registry
 	baseDir       string
 	jStorage      jobstorage.JobStorage
 	kafkaProducer sarama.SyncProducer
@@ -74,13 +73,14 @@ func NewGripServer(conf *config.Config, baseDir string, drivers map[string]gdbi.
 		maps.Copy(gdbs, drivers)
 	}
 
-	sources := map[string]gripper.GRIPSourceClient{}
+	sources := gripper.NewRegistry()
 	for name, host := range conf.Sources {
 		conn, err := gripper.StartConnection(host)
 		if err == nil {
-			sources[name] = conn
-		} else {
-			log.Errorf("Cannot reach source: %s", name)
+			err = sources.Add(name, conn)
+		}
+		if err != nil {
+			log.Errorf("Cannot use source %s: %s", name, err)
 		}
 	}
 
@@ -96,12 +96,11 @@ func NewGripServer(conf *config.Config, baseDir string, drivers map[string]gdbi.
 	}
 
 	server := &GripServer{
-		dbs:      gdbs,
-		conf:     conf,
-		schemas:  schemas,
-		mappings: map[string]*gripql.Graph{},
-		plugins:  map[string]*Plugin{},
-		sources:  sources,
+		dbs:     gdbs,
+		conf:    conf,
+		schemas: schemas,
+		plugins: map[string]*Plugin{},
+		sources: sources,
 	}
 
 	if conf.Kafka.Username != nil &&
@@ -173,7 +172,7 @@ func NewGripServer(conf *config.Config, baseDir string, drivers map[string]gdbi.
 }
 
 // StartDriver: based on string entry in config file, figure out which driver to initialize
-func StartDriver(d config.DriverConfig, sources map[string]gripper.GRIPSourceClient) (gdbi.GraphDB, error) {
+func StartDriver(d config.DriverConfig, sources *gripper.Registry) (gdbi.GraphDB, error) {
 	if d.Bolt != nil {
 		return kvgraph.NewKVGraphDB("bolt", *d.Bolt)
 	} else if d.Badger != nil {
@@ -193,7 +192,7 @@ func StartDriver(d config.DriverConfig, sources map[string]gripper.GRIPSourceCli
 	} else if d.Sqlite != nil {
 		return sqlite.NewGraphDB(*d.Sqlite)
 	} else if d.Gripper != nil {
-		return gripper.NewGDBFromConfig(d.Gripper.Graph, d.Gripper.Mapping, sources)
+		return gripper.NewFederatedGDB(d.Gripper.Graph, sources, d.Gripper.Sources)
 	}
 	return nil, fmt.Errorf("unknown driver: %#v", d)
 }
@@ -515,12 +514,6 @@ func (server *GripServer) Serve(pctx context.Context) error {
 					log.Errorln("Error in server.getGraph: ", err)
 				} else {
 					server.schemas[strings.TrimSuffix(graph, schemaSuffix)] = schema
-				}
-			} else if isMapping(graph) {
-				log.WithFields(log.Fields{"graph": graph}).Debug("Loading existing mapping into cache")
-				mapping, err := server.getGraph(graph)
-				if err == nil {
-					server.mappings[strings.TrimSuffix(graph, mappingSuffix)] = mapping
 				}
 			}
 		}

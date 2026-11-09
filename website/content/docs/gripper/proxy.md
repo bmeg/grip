@@ -1,5 +1,5 @@
 ---
-title: External Resource Proxies
+title: Resource Nodes
 
 menu:
   main:
@@ -7,44 +7,41 @@ menu:
     weight: 2
 ---
 
-# GRIPPER
+# GRIPPER resource nodes
 
-## GRIPPER proxy
-
-With the external resources normalized to a single data model, the graph model
-describes how to connect the set of collections into a graph model. Each GRIPPER
-is required to provide a GRPC interface that allows access to collections stored
-in the resource.
-
-The required functions include:
+A resource node is a gRPC server for the `GRIPSource` service:
 
 ```
-rpc GetCollections(Empty) returns (stream Collection);
+rpc GetInfo(Empty) returns (SourceInfo);
+rpc Traverse(stream TraverseRequest) returns (stream TraverseResponse);
 ```
-`GetCollections` returns a list of all of the Collections accessible via this server.
 
-```
-rpc GetCollectionInfo(Collection) returns (CollectionInfo);
-```
-`GetCollectionInfo` provides information, such as the list of indexed fields, in a collection.
+`GetInfo` returns the node's ID prefix, its schema (vertex and edge labels) and its
+`edge_links`: the edges it stores that connect to other prefixes.
 
-```
-rpc GetIDs(Collection) returns (stream RowID);
-```
-`GetIDs` returns a stream of all of the IDs found in a collection.
+`Traverse` runs a fixed *segment* of GripQL steps (`V`, `has*`, `as`, `in/out/both`,
+`inE/outE/bothE`). The client first sends a `Start` message with the steps and the cursors
+(step indexes) at which travelers may enter. It then streams batches of travelers, each with a
+`request_id`, a cursor and the current element. The node answers asynchronously with
+batches of results that carry the same `request_id`:
 
-```
-rpc GetRows(Collection) returns (stream Row);
-```
-`GetRows` returns a stream of all of the rows in a collection.
+* a result at the end of the segment (`cursor == len(steps)`) with the new current element,
+  the marks created and the path elements added inside the segment;
+* a *handoff* (`handoff: true`) when a move reached a vertex whose ID has another prefix.
+  The central server forwards the traveler to the owner, which loads the vertex and
+  continues at the given cursor;
+* nothing when the traveler was eliminated.
 
-```
-rpc GetRowsByID(stream RowRequest) returns (stream Row);
-```
-`GetRowsByID` accepts a stream of row requests, each one requesting a single row
-by it's id, and then returns a stream of results.
+A `Flush` message is a barrier: the node answers with `FlushAck` once every traveler sent
+before it has been processed and all results were sent.
 
+## Writing a node
+
+Use the Go library in `gripper/node` to serve any `gdbi.GraphInterface`:
+
+```go
+srv, err := node.NewServer(graph, node.Options{Name: "chars", Prefix: "Character:"})
+srv.Register(grpcServer)
 ```
-rpc GetRowsByField(FieldRequest) returns (stream Row);
-```
-`GetRowsByField` searches a collection, looking for values found in an indexed field.
+
+or run `grip node --prefix Character: --db character.db --vertices ... --edges ...`.

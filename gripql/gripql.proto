@@ -335,13 +335,6 @@ message ListLabelsResponse {
   repeated string edge_labels = 2;
 }
 
-message TableInfo {
-  string source = 1;
-  string name = 2;
-  repeated string fields = 3;
-  map<string,string> link_map = 4;
-}
-
 message DeleteData {
   string graph = 1;
   repeated string vertices = 2;
@@ -386,12 +379,6 @@ service Query {
     };
   }
 
-  rpc GetMapping(GraphID) returns (Graph) {
-    option (google.api.http) = {
-      get: "/v1/graph/{graph}/mapping"
-    };
-  }
-
   rpc ListGraphs(Empty) returns (ListGraphsResponse) {
     option (google.api.http) = {
       get: "/v1/graph"
@@ -407,12 +394,6 @@ service Query {
   rpc ListLabels(GraphID) returns (ListLabelsResponse) {
     option (google.api.http) = {
       get: "/v1/graph/{graph}/label"
-    };
-  }
-
-  rpc ListTables(Empty) returns (stream TableInfo) {
-    option (google.api.http) = {
-      get: "/v1/table"
     };
   }
 }
@@ -554,13 +535,6 @@ service Edit {
   rpc SampleSchema(GraphID) returns (Graph) {
     option (google.api.http) = {
       get: "/v1/graph/{graph}/schema-sample"
-    };
-  }
-
-  rpc AddMapping(Graph) returns (EditResult) {
-    option (google.api.http) = {
-      post: "/v1/graph/{graph}/mapping"
-      body: "*"
     };
   }
 

@@ -87,46 +87,9 @@ func (client Client) GetEdge(graph string, id string) (*Edge, error) {
 	return e, err
 }
 
-// GetMaping returns the mapping for the given graph.
-func (client Client) GetMapping(graph string) (*Graph, error) {
-	return client.QueryC.GetMapping(context.Background(), &GraphID{Graph: graph})
-}
-
-// AddMapping adds a mapping for a graph.
-func (client Client) AddMapping(graph *Graph) error {
-	_, err := client.EditC.AddMapping(context.Background(), graph)
-	return err
-}
-
 // ListGraphs lists the graphs in the database
 func (client Client) ListGraphs() (*ListGraphsResponse, error) {
 	return client.QueryC.ListGraphs(context.Background(), &Empty{})
-}
-
-// ListTables lists the tables in the database
-func (client Client) ListTables() (chan *TableInfo, error) {
-	out := make(chan *TableInfo, 10)
-
-	clt, err := client.QueryC.ListTables(context.Background(), &Empty{})
-	if err != nil {
-		close(out)
-		return out, err
-	}
-	go func() {
-		defer close(out)
-		for {
-			t, err := clt.Recv()
-			if err == io.EOF {
-				return
-			}
-			if err != nil {
-				log.WithFields(log.Fields{"error": err}).Error("Receiving table list")
-				return
-			}
-			out <- t
-		}
-	}()
-	return out, nil
 }
 
 // ListIndices lists the indices on a graph in the database

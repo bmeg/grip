@@ -1,272 +1,99 @@
 # GRIPPER
-## GRIP Plugin External Resources
 
-GRIP Plugin External Resources (GRIPPERs) are GRIP drivers that take external
-resources and allow GRIP to access them are part of a unified graph.
-To integrate new resources into the graph, you
-first deploy griper proxies that plug into the external resources. They are unique
-and configured to access specific resources. These provide a view into external
-resources as a series of document collections. For example, an SQL gripper would
-plug into an SQL server and provide the tables as a set of collections with each
-every row a document. A gripper is written as a gRPC server.
-
-![GIPPER Architecture](../website/static/img/gripper_architecture.png)
-
-## GRIPPER versioning
-
-The Plugin External Resource (PER) is version Alpha 1. As an alpha system,
-the plugin interface works, but the API will change and there is no expectation
-of continued support for older alpha APIs.
-
-## GRIPPER proxy
-
-With the external resources normalized to a single data model, the graph model
-describes how to connect the set of collections into a graph model. Each GRIPPER
-is required to provide a GRPC interface that allows access to collections stored
-in the resource.
-
-The required functions include:
+GRIP Plugin External Resources (GRIPPERs) let one GRIP server query several independent
+graph databases as a single **federated graph**. Each database is served by a *resource
+node* that speaks the `GRIPSource` gRPC API. The central GRIP server splits every query
+into pieces that the nodes can run themselves, streams travelers to them and merges the
+results.
 
 ```
-rpc GetCollections(Empty) returns (stream Collection);
+                 +----------------------+
+ GripQL query -> |  central GRIP server |   plans segments, keeps traveler state,
+                 |  (gripper.Federated) |   runs the steps nodes cannot run
+                 +----------------------+
+                   |        |        |        bidirectional Traverse streams
+              +----+   +----+   +----+
+              | A: |   | B: |   | C: |        resource nodes, one subgraph each
+              +----+   +----+   +----+
 ```
-`GetCollections` returns a list of all of the Collections accessible via this server.
+
+> GRIPPER v2 replaces the original collection based API (`GetRows`, `GetRowsByField`, ...),
+> the Python proxies and the YAML vertex/edge mapping files. There is no compatibility
+> with the old interface. See [DESIGN.md](DESIGN.md) for the full design and protocol.
+
+## Concepts
+
+* **Prefix.** Every resource node serves a subgraph in which *all vertex and edge IDs start
+  with the same CURIE prefix*, for example `Character:`. Prefixes of the nodes in a
+  federation must not overlap.
+* **Cross-node edges.** An edge is stored in one node but may point at a vertex that
+  belongs to another node, identified by its prefix. Nodes advertise such edges in
+  `GetInfo` (`edge_links`) so the central server knows which nodes to ask for incoming edges.
+* **Segments.** The central server cuts a query into runs of steps a node can execute
+  (`V`, `hasLabel`, `hasId`, `hasKey`, `has`, `as`, `in/out/both`, `inE/outE/bothE`). The
+  other steps (`limit`, `count`, `select`, `jump`, `*Null` ...) run on the central server.
+* **Travelers.** The central server streams travelers (only the current element) to the
+  nodes. The node runs them through the segment and returns, for each, descendants,
+  nothing (the traveler was eliminated) or a *handoff* when a move reaches a vertex owned
+  by another node. Every result carries the `request_id` of the traveler that was sent.
+
+## Running a federation
+
+Start one node per subgraph. `grip node` serves any GRIP storage driver; the optional
+`--vertices`/`--edges` flags load JSON lines files first:
 
 ```
-rpc GetCollectionInfo(Collection) returns (CollectionInfo);
+grip node --prefix Character: --listen localhost:50061 --db character.db \
+          --vertices Character.vertices --edges Character.edges
+grip node --prefix Film:      --listen localhost:50062 --db film.db ...
 ```
-`GetCollectionInfo` provides information, such as the list of indexed fields, in a collection.
 
+Point a server at them. The `Gripper` driver exposes the sources as one graph:
+
+```yaml
+Default: swapi
+Drivers:
+  swapi:
+    Gripper:
+      Graph: swapi          # name of the federated graph
+      # Sources: [Character, Film]   # optional subset of the sources below
+Sources:                     # name -> host:port of each resource node
+  Character: localhost:50061
+  Film: localhost:50062
 ```
-rpc GetIDs(Collection) returns (stream RowID);
+
+Sources can also be given on the command line with `grip server --er name=host:port`.
+Binaries named `gripper-<name>` in the plugin directory (`--plugins`) are launched
+and registered as sources through the `StartPlugin` API.
+
+The federated graph is read only. Run `make test-conformance-federated` to start six nodes
+(one per SWAPI label, so every edge crosses nodes) and run the conformance suite against them.
+
+`grip node --mapping tables.yaml` loads flat CSV or JSON lines tables into the node's graph
+(see [node/table](node/table/table.go) for the mapping format: vertex tables, and edge rows
+that join two ID fields). Databases such as SQL or MongoDB are served directly with
+`grip node --config` and the matching driver.
+
+## Writing a resource node in Go
+
+Resource nodes are Go programs built on [node](node/):
+
+```go
+srv, _ := node.NewServer(graph, node.Options{Name: "chars", Prefix: "Character:"})
+srv.Register(grpcServer)
 ```
-`GetIDs` returns a stream of all of the IDs found in a collection.
 
-```
-rpc GetRows(Collection) returns (stream Row);
-```
-`GetRows` returns a stream of all of the rows in a collection.
+`graph` is any `gdbi.GraphInterface`. `node.ScanEdgeLinks` computes the `EdgeLinks`
+option from the stored edges. The server compiles each segment with the regular GRIP
+query engine over a `BoundaryGraph` that turns moves to foreign vertices into handoffs.
 
-```
-rpc GetRowsByID(stream RowRequest) returns (stream Row);
-```
-`GetRowsByID` accepts a stream of row requests, each one requesting a single row
-by it's id, and then returns a stream of results.
+## Semantics worth knowing
 
-```
-rpc GetRowsByField(FieldRequest) returns (stream Row);
-```
-`GetRowsByField` searches a collection, looking for values found in an indexed field.
-
-## Graph Model
-
-The graph model describes how GRIP will access multiple gripper servers. The graph
-is described using three sections, `sources`, `vertices` and `edges`.
-
-The `sources` section describes all of the GRIPPER resources that GRIP will use
-to build the graph. The `vertices` section describes how different collections
-found in these sources will be turned into Vertex found in the graph. Finally, the
-`edges` section describes the different kinds of rules that can be used build the
-edges in the graph.
-
-Edges can be built from two rules `fieldToField` and `edgeTable`. In `fieldToField`,
-a field value found in one vertex can be used to look up matching destination vertices
-by using an indexed field found in another collection that has been mapped to a vertex.
-For `edgeTable` connections, there is a single collection that represents a connection between
-two other collections that have been mapped to vertices.
-
-Example:
-```
-sources:
-  tableServer:
-    host: localhost:50051
-
-vertices:
-  "Character:" :
-    source: tableServer
-    label: Character
-    collection: Character
-
-  "Planet:" :
-    source: tableServer
-    label: Planet
-    collection: Planet
-
-  "Film:" :
-    source: tableServer
-    label: Film
-    collection: Film
-
-  "Species:" :
-    source: tableServer
-    label: Species
-    collection: Species
-
-  "Starship:" :
-    source: tableServer
-    label: Starship
-    collection: Starship
-
-  "Vehicle:" :
-    source: tableServer
-    label: Vehicle
-    collection: Vehicle
-
-edges:
-  homeworld:
-    fromVertex: "Character:"
-    toVertex: "Planet:"
-    label: homeworld
-    fieldToField:
-      fromField: $.homeworld
-      toField: $.id
-
-  species:
-    fromVertex: "Character:"
-    toVertex: "Species:"
-    label: species
-    fieldToField:
-      fromField: $.species
-      toField: $.id
-
-  people:
-    fromVertex: "Species:"
-    toVertex: "Character:"
-    label: people
-    edgeTable:
-      source: tableServer
-      collection: speciesCharacter
-      fromField: $.from
-      toField: $.to
-
-
-  residents:
-    fromVertex: "Planet:"
-    toVertex: "Character:"
-    label: residents
-    edgeTable:
-      source: tableServer
-      collection: planetCharacter
-      fromField: $.from
-      toField: $.to
-
-  filmVehicles:
-    fromVertex: "Film:"
-    toVertex: "Vehicle:"
-    label: "vehicles"
-    edgeTable:
-      source: tableServer
-      collection: filmVehicles
-      fromField: "$.from"
-      toField: "$.to"
-
-  vehicleFilms:
-    toVertex: "Film:"
-    fromVertex: "Vehicle:"
-    label: "films"
-    edgeTable:
-      source: tableServer
-      collection: filmVehicles
-      toField: "$.from"
-      fromField: "$.to"
-
-  filmStarships:
-    fromVertex: "Film:"
-    toVertex: "Starship:"
-    label: "starships"
-    edgeTable:
-      source: tableServer
-      collection: filmStarships
-      fromField: "$.from"
-      toField: "$.to"
-
-  starshipFilms:
-    toVertex: "Film:"
-    fromVertex: "Starship:"
-    label: "films"
-    edgeTable:
-      source: tableServer
-      collection: filmStarships
-      toField: "$.from"
-      fromField: "$.to"
-
-  filmPlanets:
-    fromVertex: "Film:"
-    toVertex: "Planet:"
-    label: "planets"
-    edgeTable:
-      source: tableServer
-      collection: filmPlanets
-      fromField: "$.from"
-      toField: "$.to"
-
-  planetFilms:
-    toVertex: "Film:"
-    fromVertex: "Planet:"
-    label: "films"
-    edgeTable:
-      source: tableServer
-      collection: filmPlanets
-      toField: "$.from"
-      fromField: "$.to"
-
-  filmSpecies:
-    fromVertex: "Film:"
-    toVertex: "Species:"
-    label: "species"
-    edgeTable:
-      source: tableServer
-      collection: filmSpecies
-      fromField: "$.from"
-      toField: "$.to"
-
-  speciesFilms:
-    toVertex: "Film:"
-    fromVertex: "Species:"
-    label: "films"
-    edgeTable:
-      source: tableServer
-      collection: filmSpecies
-      toField: "$.from"
-      fromField: "$.to"
-
-  filmCharacters:
-    fromVertex: "Film:"
-    toVertex: "Character:"
-    label: characters
-    edgeTable:
-      source: tableServer
-      collection: filmCharacters
-      fromField: "$.from"
-      toField: "$.to"
-
-  characterFilms:
-    fromVertex: "Character:"
-    toVertex: "Film:"
-    label: films
-    edgeTable:
-      source: tableServer
-      collection: filmCharacters
-      toField: "$.from"
-      fromField: "$.to"
-
-  characterStarships:
-    fromVertex: "Character:"
-    toVertex: "Starship:"
-    label: "starships"
-    edgeTable:
-      source: tableServer
-      collection: characterStarships
-      fromField: "$.from"
-      toField: "$.to"
-
-  starshipCharacters:
-    toVertex: "Character:"
-    fromVertex: "Starship:"
-    label: "pilots"
-    edgeTable:
-      source: tableServer
-      collection: characterStarships
-      toField: "$.from"
-      fromField: "$.to"
-```
+* Edges to vertices that no registered node owns, or whose owner does not have the vertex,
+  are dropped (with a debug log), like dangling edges in a single graph.
+* `in`, `inE`, `both` and `bothE` ask the vertex owner *and* every node whose `edge_links`
+  mention the prefix.
+* `inNull`/`outNull`/`outENull`/`inENull` run on the central server.
+* A node limits segment length and the number of batches it processes concurrently.
+* A node or connection failure ends the affected query early and is logged on the central
+  server; it is not yet reported to the client as an error (see DESIGN.md, hardening).

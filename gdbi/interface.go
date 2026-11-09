@@ -93,6 +93,9 @@ type BaseTraveler struct {
 	Render      interface{}
 	Path        []DataElementID
 	Signal      *Signal
+	// RequestID identifies the request a traveler descends from while it is being
+	// processed on a federated resource node. It is not used by local pipelines.
+	RequestID uint64
 }
 
 type Traveler interface {

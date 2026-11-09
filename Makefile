@@ -54,6 +54,7 @@ proto:
 		index.proto
 	@cd gripper/ && protoc \
 	  -I ./ \
+		-I ../gripql/ \
 		-I ../googleapis/ \
 		--go_out . \
 		--go_opt paths=source_relative \
@@ -119,6 +120,12 @@ test:
 test-conformance:
 	python conformance/run_conformance.py http://localhost:18201
 
+# Starts one resource node per SWAPI label plus a central server, then runs the
+# conformance suite read-only against the federated graph. The index, pivot and
+# schema modules need a writable graph or the fhir data set.
+test-conformance-federated: install
+	GRIP=$(shell go env GOPATH)/bin/grip test/federated/run.sh --exclude index pivot schema
+
 test-authorization:
 	python conformance/run_auth.py http://localhost:18201 $(ARGS)
 
@@ -136,9 +143,6 @@ start-postgres:
 start-mysql:
 	@docker rm -f grip-mysql-test > /dev/null 2>&1 || echo
 	docker run -d --name grip-mysql-test -p 13306:3306 -e MYSQL_ALLOW_EMPTY_PASSWORD=yes mysql:8.0.11 --default-authentication-plugin=mysql_native_password > /dev/null
-
-start-gripper-test:
-	@cd ./gripper/test-graph && ./gripper-table -m swapi/table.map &
 
 start-kafka:
 	@docker rm -f kafka > /dev/null 2>&1 || echo

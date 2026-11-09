@@ -12,7 +12,6 @@ import (
 
 	"github.com/bmeg/grip/engine/pipeline"
 	"github.com/bmeg/grip/gdbi"
-	"github.com/bmeg/grip/gripper"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/schema"
@@ -102,19 +101,6 @@ func (server *GripServer) ListGraphs(ctx context.Context, empty *gripql.Empty) (
 		graphs = append(graphs, g)
 	}
 	return &gripql.ListGraphsResponse{Graphs: graphs}, nil
-}
-
-// ListTables returns list of all tables that are found in plugin system
-func (server *GripServer) ListTables(empty *gripql.Empty, srv gripql.Query_ListTablesServer) error {
-	client := gripper.NewGripperClient(server.sources)
-
-	for k := range server.sources {
-		for col := range client.GetCollections(context.Background(), k) {
-			info, _ := client.GetCollectionInfo(context.Background(), k, col)
-			srv.Send(&gripql.TableInfo{Source: k, Name: col, Fields: info.SearchFields, LinkMap: info.LinkMap})
-		}
-	}
-	return nil
 }
 
 // GetVertex returns a vertex given a gripql.Element
@@ -797,28 +783,6 @@ func (server *GripServer) AddJsonSchema(ctx context.Context, rawjson *gripql.Raw
 	}
 	res, err := server.AddSchema(ctx, req[0])
 	return res, err
-}
-
-// GetMapping returns the schema of a specific graph in the database
-func (server *GripServer) GetMapping(ctx context.Context, elem *gripql.GraphID) (*gripql.Graph, error) {
-	if !server.graphExists(elem.Graph) {
-		return nil, status.Errorf(codes.NotFound, "graph %s: not found", elem.Graph)
-	}
-	mapping, err := server.getGraph(elem.Graph + mappingSuffix)
-	if err != nil {
-		return nil, err
-	}
-	return mapping, nil
-}
-
-// AddMapping caches a graph schema on the server
-func (server *GripServer) AddMapping(ctx context.Context, req *gripql.Graph) (*gripql.EditResult, error) {
-	err := server.addFullGraph(ctx, fmt.Sprintf("%s%s", req.Graph, mappingSuffix), req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to store new mapping: %v", err)
-	}
-	server.updateGraphMap()
-	return &gripql.EditResult{Id: req.Graph}, nil
 }
 
 func (server *GripServer) graphExists(graphName string) bool {

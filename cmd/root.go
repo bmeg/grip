@@ -10,15 +10,14 @@ import (
 	"github.com/bmeg/grip/cmd/delete"
 	"github.com/bmeg/grip/cmd/drop"
 	"github.com/bmeg/grip/cmd/dump"
-	"github.com/bmeg/grip/cmd/erclient"
 	"github.com/bmeg/grip/cmd/info"
 	"github.com/bmeg/grip/cmd/job"
 	"github.com/bmeg/grip/cmd/jsonload"
 	"github.com/bmeg/grip/cmd/kvload"
 	"github.com/bmeg/grip/cmd/list"
 	"github.com/bmeg/grip/cmd/load"
-	"github.com/bmeg/grip/cmd/mapping"
 	"github.com/bmeg/grip/cmd/mongoload"
+	"github.com/bmeg/grip/cmd/node"
 	"github.com/bmeg/grip/cmd/plugin"
 	"github.com/bmeg/grip/cmd/query"
 	"github.com/bmeg/grip/cmd/rdf"
@@ -63,10 +62,9 @@ func init() {
 	RootCmd.AddCommand(mongoload.Cmd)
 	RootCmd.AddCommand(jsonload.Cmd)
 	RootCmd.AddCommand(query.Cmd)
-	RootCmd.AddCommand(erclient.Cmd)
 	RootCmd.AddCommand(rdf.Cmd)
 	RootCmd.AddCommand(schema.Cmd)
-	RootCmd.AddCommand(mapping.Cmd)
+	RootCmd.AddCommand(node.Cmd)
 	RootCmd.AddCommand(server.Cmd)
 	RootCmd.AddCommand(stream.Cmd)
 	RootCmd.AddCommand(plugin.Cmd)
