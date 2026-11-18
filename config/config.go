@@ -15,6 +15,7 @@ import (
 	"github.com/bmeg/grip/mongo"
 	"github.com/bmeg/grip/psql"
 	"github.com/bmeg/grip/sqlite"
+	"github.com/bmeg/grip/table"
 	"github.com/bmeg/grip/util"
 	"github.com/bmeg/grip/util/duration"
 	"github.com/bmeg/grip/util/rpc"
@@ -36,6 +37,7 @@ type DriverConfig struct {
 	ExistingSQL *esql.Config
 	Sqlite      *sqlite.Config
 	Gripper     *gripper.Config
+	Table       *table.Config
 }
 
 type KafkaConfig struct {
@@ -286,6 +288,15 @@ func DeepCopyRedactedConfig(conf *Config) *Config {
 		if driver.Gripper != nil {
 			federation := *driver.Gripper
 			cpyDriver.Gripper = &federation
+		}
+		if driver.Table != nil {
+			tableConfig := *driver.Table
+			tableConfig.Config = make(map[string]interface{}, len(driver.Table.Config))
+			for key, value := range driver.Table.Config {
+				_ = value
+				tableConfig.Config[key] = "[REDACTED]"
+			}
+			cpyDriver.Table = &tableConfig
 		}
 		cpyConf.Drivers[k] = cpyDriver
 	}
