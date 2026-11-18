@@ -42,8 +42,29 @@
           <li><a href="https://github.com/bmeg/grip">GitHub</a></li>
           <li><a href="https://gitter.im/bmeg/grip">Chat</a></li>
         </ul>
+        
+        <!-- Search (Pagefind) -->
+        <div class="search-btn-container">
+          <button class="search-btn" data-open-modal aria-label="Open search dialog">
+              <svg
+                aria-hidden="true"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+              >
+                <path
+                    d="M21.71 20.29 18 16.61A9 9 0 1 0 16.61 18l3.68 3.68a.999.999 0 0 0 1.42 0 1 1 0 0 0 0-1.39ZM11 18a7 7 0 1 1 0-14 7 7 0 0 1 0 14Z"
+                ></path>
+              </svg>
+              <span class="search-text">Search</span>
+          </button>
+        </div>
+
       <div class="global-header-ohsucb">
         <a href="https://www.ohsu.edu/compbio/"><h2>OHSU Comp Bio</h2></a>
       </div>
     </div>
   </div>
+
+  {{ partial "search.html" . }}

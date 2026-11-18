@@ -191,6 +191,7 @@ start-kafka:
 # ---------------------
 website:
 	hugo --source ./website
+	npx -y pagefind --site docs
 
 # Serve the website on localhost:1313
 website-dev:
