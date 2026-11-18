@@ -6,8 +6,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bmeg/grip/config"
-	"github.com/bmeg/grip/gripper"
 	"github.com/bmeg/grip/gripql"
 	"github.com/bmeg/grip/log"
 	"github.com/bmeg/grip/util/rpc"
@@ -17,14 +15,9 @@ import (
 )
 
 var schemaSuffix = "__schema__"
-var mappingSuffix = "__mapping__"
 
 func isSchema(graphName string) bool {
 	return strings.HasSuffix(graphName, schemaSuffix)
-}
-
-func isMapping(graphName string) bool {
-	return strings.HasSuffix(graphName, mappingSuffix)
 }
 
 func (server *GripServer) getGraph(graph string) (*gripql.Graph, error) {
@@ -113,24 +106,6 @@ func (server *GripServer) updateGraphMap() {
 	for n, dbs := range server.dbs {
 		for _, g := range dbs.ListGraphs() {
 			o[g] = n
-			if strings.HasSuffix(g, "__mapping__") {
-				graph, err := server.getGraph(g)
-				if err == nil {
-					log.Infof("Reading config for a gripper driver %s", g)
-					mapping, _ := gripper.GraphToConfig(graph)
-					graphName := strings.TrimSuffix(g, mappingSuffix)
-					gdb, err := StartDriver(config.DriverConfig{Gripper: &gripper.Config{Graph: graphName, Mapping: mapping}}, server.sources)
-					if err == nil {
-						driverName := fmt.Sprintf("%s__driver__", graphName)
-						server.dbs[driverName] = gdb
-						o[graphName] = driverName
-					} else {
-						log.Errorf("Failed to start gripper: %s", graphName)
-					}
-				} else {
-					log.Errorf("Failed to get graph mapping: %s", err)
-				}
-			}
 		}
 	}
 	server.graphMap = o

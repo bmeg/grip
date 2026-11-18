@@ -214,3 +214,49 @@ func (t *BaseTraveler) GetPath() []DataElementID {
 func (t BaseTraveler) GetAggregation() *Aggregate {
 	return t.Aggregation
 }
+
+// NewEntryTraveler creates a traveler positioned on an existing element without
+// recording the element in its path. Resource nodes use it to resume a traveler
+// whose history is kept by the central processor.
+func NewEntryTraveler(e *DataElement) *BaseTraveler {
+	t := &BaseTraveler{}
+	if e != nil {
+		t.Current = e
+		t.currentRef = e
+	}
+	return t
+}
+
+// ApplyDelta returns a copy of the traveler advanced by the outcome of a remote
+// traversal segment. cur becomes the current element (nil makes the traveler
+// null), marks are merged over the existing marks and path entries are appended.
+func (t *BaseTraveler) ApplyDelta(cur DataRef, marks map[string]*DataElement, path []DataElementID) *BaseTraveler {
+	o := t.Copy().(*BaseTraveler)
+	if cur == nil {
+		o.Current = nil
+		o.currentRef = nil
+	} else {
+		o.currentRef = cur.Copy()
+		o.Current = dataRefIdentity(o.currentRef)
+		if o.Current == nil {
+			o.Current = o.currentRef.Get()
+		}
+	}
+	if len(marks) > 0 {
+		m := make(map[string]*DataElement, len(o.Marks)+len(marks))
+		for k, v := range o.Marks {
+			m[k] = v
+		}
+		for k, v := range marks {
+			m[k] = v
+		}
+		o.Marks = m
+	}
+	if len(path) > 0 {
+		p := make([]DataElementID, 0, len(o.Path)+len(path))
+		p = append(p, o.Path...)
+		p = append(p, path...)
+		o.Path = p
+	}
+	return o
+}

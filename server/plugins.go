@@ -41,7 +41,11 @@ func (server *GripServer) StartPlugin(ctx context.Context, config *gripql.Plugin
 		return nil, err
 	}
 	server.plugins[config.Name] = &Plugin{name: config.Name, plugin: plg, client: cli}
-	server.sources[config.Name] = cli
+	if err := server.sources.Add(config.Name, cli); err != nil {
+		plg.Kill()
+		delete(server.plugins, config.Name)
+		return nil, err
+	}
 	server.updateGraphMap()
 	return &gripql.PluginStatus{Name: config.Name}, nil
 }

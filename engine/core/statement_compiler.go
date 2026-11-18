@@ -14,6 +14,12 @@ type DefaultStmtCompiler struct {
 	db gdbi.GraphInterface
 }
 
+// NewStatementCompiler creates the default statement compiler for a graph. It lets
+// other compilers compile statements one at a time with gdbi.StatementProcessor.
+func NewStatementCompiler(db gdbi.GraphInterface) *DefaultStmtCompiler {
+	return &DefaultStmtCompiler{db: db}
+}
+
 func (sc *DefaultStmtCompiler) V(stmt *gripql.GraphStatement_V, ps *gdbi.State) (gdbi.Processor, error) {
 	ids := protoutil.AsStringList(stmt.V)
 	return &LookupVerts{db: sc.db, ids: ids, loadData: ps.StepLoadData()}, nil

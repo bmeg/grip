@@ -10,13 +10,18 @@ menu:
 # GRIPPER
 ## GRIP Plugin External Resources
 
-GRIP Plugin External Resources (GRIPPERs) are GRIP drivers that take external
-resources and allow GRIP to access them are part of a unified graph.
-To integrate new resources into the graph, you
-first deploy griper proxies that plug into the external resources. They are unique
-and configured to access specific resources. These provide a view into external
-resources as a series of document collections. For example, an SQL gripper would
-plug into an SQL server and provide the tables as a set of collections with each
-every row a document. A gripper is written as a gRPC server.
+GRIP Plugin External Resources (GRIPPERs) let one GRIP server query several independent
+graph databases as a single **federated graph**. Each database is served by a *resource
+node* that implements the `GRIPSource` gRPC API. The central GRIP server splits each query
+into pieces that the nodes can run themselves, streams travelers to them and merges what
+comes back.
 
 ![GIPPER Architecture](/img/gripper_architecture.png)
+
+Every resource node serves a subgraph in which all vertex and edge IDs start with the same
+CURIE prefix, such as `Character:`. Edges stored in one node may point at vertices owned by
+another node.
+
+GRIPPER version 2 is a breaking change. The collection based API, the Python proxies and the
+vertex/edge mapping files of version 1 are gone; resource nodes are now written in Go on top
+of the library in `gripper/node`.

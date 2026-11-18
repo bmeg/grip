@@ -5,53 +5,146 @@ package gripper;
 option go_package = "github.com/bmeg/grip/gripper";
 
 import "google/protobuf/struct.proto";
+import "gripql.proto";
+
+// GRIPSource is a resource node in a federated GRIP graph. A source serves a
+// subgraph in which every vertex and edge ID starts with the same CURIE
+// prefix. Edges may point at vertices owned by other sources.
+//
+// See gripper/DESIGN.md for the full semantics of Traverse (cursors, handoff,
+// null moves and the flush barrier).
+service GRIPSource {
+  // GetInfo describes the subgraph served by this source.
+  rpc GetInfo(Empty) returns (SourceInfo);
+
+  // Traverse runs a fixed segment of GripQL steps. The first request message
+  // must be Start. Afterwards the client streams batches of travelers and the
+  // source streams results back asynchronously. Every result carries the
+  // request_id of the traveler that produced it.
+  rpc Traverse(stream TraverseRequest) returns (stream TraverseResponse);
+}
 
 message Empty {}
 
-message Collection {
-  string name = 1;
+// EdgeLink describes edges stored in this source that point at a different
+// prefix. The central processor uses these to answer in/inE/both/bothE steps
+// for vertices owned by other sources.
+message EdgeLink {
+  string label = 1;
+  string from_prefix = 2;
+  string to_prefix = 3;
 }
 
-message RowID {
+message SourceInfo {
+  uint32 protocol_version = 1;
+  string name = 2;
+  // CURIE prefix that every vertex and edge ID served here starts with, e.g. "Character:"
+  string prefix = 3;
+  // Vertex labels, edge labels and their field types (same format as BuildSchema output)
+  gripql.Graph schema = 4;
+  // Edges stored here that connect to another prefix (in either direction).
+  repeated EdgeLink edge_links = 5;
+  // Indexed fields as "label.field"; advisory, used for planning.
+  repeated string indexed_fields = 6;
+  // Maximum number of travelers the source wants in one TravelerBatch (0 = no preference).
+  uint32 max_batch = 7;
+}
+
+// Element is a vertex or an edge. Edges have from/to set.
+message Element {
   string id = 1;
+  string label = 2;
+  string from = 3;
+  string to = 4;
+  google.protobuf.Struct data = 5;
+  // true if data (and label) were loaded. A bare ID reference has loaded=false.
+  bool loaded = 6;
 }
 
-message RowRequest {
-  string collection = 1;
-  string id = 2;
-  uint64 requestID = 3;
+// PathElem is one entry of a traveler path.
+message PathElem {
+  string vertex = 1;
+  string edge = 2;
 }
 
-message FieldRequest {
-  string collection = 1;
-  string field = 2;
-  string value = 3;
+message TraverseRequest {
+  oneof msg {
+    Start start = 1;
+    TravelerBatch batch = 2;
+    Flush flush = 3;
+  }
 }
 
-message Row {
-  string id = 1;
-  google.protobuf.Struct data = 2;
-  uint64 requestID = 3;
+message Start {
+  // Fixed pushable steps. Only V, has*, in/out/both, inE/outE/bothE, the *Null
+  // variants and `as` are accepted (see DESIGN.md).
+  repeated gripql.GraphStatement steps = 1;
+  // Step indices at which travelers may be injected. 0 means seeds (a V step).
+  repeated uint32 entry_cursors = 2;
+  // True if the central processor needs element data on results that finish the segment.
+  bool load_final = 3;
+  // Limits the source must honor; 0 means use the source default.
+  uint32 max_inflight = 4;
 }
 
-
-message CollectionInfo {
-  repeated string search_fields = 1;
-  map<string,string> link_map = 2; // Map field name to collection name
+message TravelerIn {
+  // Unique per stream. Results refer back to it.
+  uint64 request_id = 1;
+  // Index of the next step to run.
+  uint32 cursor = 2;
+  // Current element. Unset for a seed traveler at cursor 0.
+  Element current = 3;
+  // current is a bare ID owned by this source that must be loaded first. If it
+  // does not exist the traveler is dropped.
+  bool needs_resolve = 4;
+  // current is NOT owned by this source. The step at `cursor` must be an
+  // in/inE/both/bothE step; the source reports the edges it stores that point at current.
+  bool foreign_probe = 5;
 }
 
-service GRIPSource {
+message TravelerBatch {
+  repeated TravelerIn travelers = 1;
+}
 
-  rpc GetCollections(Empty) returns (stream Collection);
+// Flush is a barrier: the source acks once every traveler sent before it has
+// been fully processed and all of their results have been sent.
+message Flush {
+  uint64 id = 1;
+}
 
-  rpc GetCollectionInfo(Collection) returns (CollectionInfo);
+message TraverseResponse {
+  oneof msg {
+    ResultBatch results = 1;
+    FlushAck ack = 2;
+    Error error = 3;
+  }
+}
 
-  rpc GetIDs(Collection) returns (stream RowID);
+message TravelerOut {
+  // request_id of the TravelerIn this result descends from.
+  uint64 request_id = 1;
+  // Index of the next step to run. == len(steps): segment complete (unless handoff is set).
+  uint32 cursor = 2;
+  Element current = 3;
+  // Marks created inside this segment only.
+  map<string, Element> marks = 4;
+  // Path entries added inside this segment only.
+  repeated PathElem path = 5;
+  // Reserved: *Null steps are not accepted by resource nodes (see DESIGN.md).
+  bool null_move = 6;
+  // The traveler reached a vertex owned by another source. current is a bare reference
+  // and cursor is the step to continue at (it may equal len(steps)).
+  bool handoff = 7;
+}
 
-  rpc GetRows(Collection) returns (stream Row);
+message ResultBatch {
+  repeated TravelerOut results = 1;
+}
 
-  rpc GetRowsByID(stream RowRequest) returns (stream Row);
+message FlushAck {
+  uint64 id = 1;
+}
 
-  rpc GetRowsByField(FieldRequest) returns (stream Row);
-
+message Error {
+  string message = 1;
 }

@@ -175,12 +175,12 @@ func getUnaryRequestGraph(req any, info *grpc.UnaryServerInfo) (string, error) {
 		o := req.(*gripql.ElementID)
 		return o.Graph, nil
 	case "/gripql.Query/GetTimestamp", "/gripql.Query/GetSchema",
-		"/gripql.Query/GetMapping", "/gripql.Query/ListIndices",
+		"/gripql.Query/ListIndices",
 		"/gripql.Query/ListLabels", "/gripql.Job/ListJobs",
 		"/gripql.Edit/AddGraph", "/gripql.Edit/DeleteGraph":
 		o := req.(*gripql.GraphID)
 		return o.Graph, nil
-	case "/gripql.Query/ListGraphs", "/gripql.Query/ListTables":
+	case "/gripql.Query/ListGraphs":
 		return "*", nil
 	case "/gripql.Job/GetJob", "/gripql.Job/DeleteJob",
 		"/gripql.Job/ViewJob":
@@ -198,7 +198,7 @@ func getUnaryRequestGraph(req any, info *grpc.UnaryServerInfo) (string, error) {
 	case "/gripql.Edit/AddIndex", "/gripql.Edit/DeleteIndex":
 		o := req.(*gripql.IndexID)
 		return o.Graph, nil
-	case "/gripql.Edit/AddSchema", "/gripql.Edit/AddMapping":
+	case "/gripql.Edit/AddSchema":
 		o := req.(*gripql.Graph)
 		return o.Graph, nil
 	case "/gripql.Edit/AddJsonSchema":

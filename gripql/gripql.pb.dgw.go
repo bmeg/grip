@@ -208,26 +208,6 @@ func (shim *QueryDirectClient) GetSchema(ctx context.Context, in *GraphID, opts 
 	return shim.server.GetSchema(ictx, in)
 }
 
-//GetMapping shim
-func (shim *QueryDirectClient) GetMapping(ctx context.Context, in *GraphID, opts ...grpc.CallOption) (*Graph, error) {
-  md, _ := metadata.FromOutgoingContext(ctx)
-  ictx := metadata.NewIncomingContext(ctx, md)
-  if shim.unaryServerInt != nil {
-    handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-  		return shim.server.GetMapping(ctx, req.(*GraphID))
-  	}
-    info := grpc.UnaryServerInfo{
-      FullMethod: "/gripql.Query/GetMapping",
-    }
-    o, err := shim.unaryServerInt(ictx, in, &info, handler)
-    if o == nil {
-      return nil, err
-    }
-    return o.(*Graph), err
-  }
-	return shim.server.GetMapping(ictx, in)
-}
-
 //ListGraphs shim
 func (shim *QueryDirectClient) ListGraphs(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*ListGraphsResponse, error) {
   md, _ := metadata.FromOutgoingContext(ctx)
@@ -287,78 +267,6 @@ func (shim *QueryDirectClient) ListLabels(ctx context.Context, in *GraphID, opts
   }
 	return shim.server.ListLabels(ictx, in)
 }
-
-
-/* Start QueryListTables call output server  */
-type directQueryListTables struct {
-  ctx context.Context
-  c   chan *TableInfo
-  in  *Empty
-  e   error
-}
-
-func (dsm *directQueryListTables) Recv() (*TableInfo, error) {
-	value, ok := <-dsm.c
-	if !ok {
-    if dsm.e != nil {
-      return nil, dsm.e
-    }
-		return nil, io.EOF
-	}
-	return value, dsm.e
-}
-
-func (dsm *directQueryListTables) Send(a *TableInfo) error {
-	return dsm.SendMsg(a)
-}
-
-func (dsm *directQueryListTables) SendMsg(m interface{}) error  { 
-	dsm.c <- m.(*TableInfo)
-	return nil 
-}
-
-func (dsm *directQueryListTables) close() {
-	close(dsm.c)
-}
-func (dsm *directQueryListTables) Context() context.Context {
-	return dsm.ctx
-}
-func (dsm *directQueryListTables) CloseSend() error             { return nil }
-func (dsm *directQueryListTables) SetTrailer(metadata.MD)       {}
-func (dsm *directQueryListTables) SetHeader(metadata.MD) error  { return nil }
-func (dsm *directQueryListTables) SendHeader(metadata.MD) error { return nil }
-func (dsm *directQueryListTables) RecvMsg(m interface{}) error  { 
-	mPtr := m.(*Empty)
-	*mPtr = *dsm.in
-	return nil
-}
-func (dsm *directQueryListTables) Header() (metadata.MD, error) { return nil, nil }
-func (dsm *directQueryListTables) Trailer() metadata.MD         { return nil }
-/* End QueryListTables call output server  */
-
-func (shim *QueryDirectClient) ListTables(ctx context.Context, in *Empty, opts ...grpc.CallOption) (Query_ListTablesClient, error) {
-  md, _ := metadata.FromOutgoingContext(ctx)
-  ictx := metadata.NewIncomingContext(ctx, md)
-
-	w := &directQueryListTables{ictx, make(chan *TableInfo, 100), in, nil}
-  if shim.streamServerInt != nil {
-    go func() {
-      defer w.close()
-      info := grpc.StreamServerInfo{
-        FullMethod: "/gripql.Query/ListTables",
-        IsServerStream: true,
-      }
-      w.e = shim.streamServerInt(shim.server, w, &info, _Query_ListTables_Handler)
-    } ()
-    return w, nil
-  }
-	go func() {
-    defer w.close()
-		w.e = shim.server.ListTables(in, w)
-	}()
-	return w, nil
-}
-
 
 // JobDirectClient is a shim to connect Job client directly server
 type JobDirectClient struct {
@@ -1150,26 +1058,6 @@ func (shim *EditDirectClient) SampleSchema(ctx context.Context, in *GraphID, opt
     return o.(*Graph), err
   }
 	return shim.server.SampleSchema(ictx, in)
-}
-
-//AddMapping shim
-func (shim *EditDirectClient) AddMapping(ctx context.Context, in *Graph, opts ...grpc.CallOption) (*EditResult, error) {
-  md, _ := metadata.FromOutgoingContext(ctx)
-  ictx := metadata.NewIncomingContext(ctx, md)
-  if shim.unaryServerInt != nil {
-    handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-  		return shim.server.AddMapping(ctx, req.(*Graph))
-  	}
-    info := grpc.UnaryServerInfo{
-      FullMethod: "/gripql.Edit/AddMapping",
-    }
-    o, err := shim.unaryServerInt(ictx, in, &info, handler)
-    if o == nil {
-      return nil, err
-    }
-    return o.(*EditResult), err
-  }
-	return shim.server.AddMapping(ictx, in)
 }
 
 // ConfigureDirectClient is a shim to connect Configure client directly server
