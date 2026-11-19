@@ -192,9 +192,27 @@ jobs:
           sleep 5
           python conformance/run_conformance.py http://localhost:18201 --exclude aggregations
 
+  tableTest:
+    needs: build
+    name: Table Driver Conformance
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+      - name: Python Dependencies for Conformance
+        run: pip install -U requests numpy protobuf
+      - name: Download grip
+        uses: actions/download-artifact@v4
+        with:
+          name: gripBin
+      - name: Table Driver Conformance
+        run: |
+          chmod +x grip
+          test/table/run.sh
+
   gripperTest:
     needs: build
-    name: Gripper Test
+    name: GRIPPER Federation Test
     runs-on: ubuntu-latest
     steps:
       - name: Check out code
@@ -202,7 +220,7 @@ jobs:
       - name: Update pip
         run: pip install --upgrade pip
       - name: Python Dependencies for Conformance
-        run: pip install -U requests numpy grpcio-tools protobuf
+        run: pip install -U requests numpy protobuf
       - name: Download grip
         uses: actions/download-artifact@v4
         with:
@@ -210,12 +228,7 @@ jobs:
       - name: Gripper Conformance
         run: |
           chmod +x grip
-          python gripper/test-graph/test_gripper.py
-          make start-gripper-test
-          sleep 5
-          ./grip server --rpc-port 18202 --http-port 18201 --config ./gripper/test-graph/config.yaml --er tableServer=localhost:50051 &
-          sleep 5
-          python conformance/run_conformance.py http://localhost:18201 --readOnly swapi --exclude index pivot
+          GRIP=./grip test/federated/run.sh --exclude index pivot schema
 
   authTest:
     needs: build

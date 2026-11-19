@@ -120,6 +120,11 @@ test:
 test-conformance:
 	python conformance/run_conformance.py http://localhost:18201
 
+# Starts one standalone filetable-backed graph and runs the conformance suite
+# against it. This is separate from federated GRIPPER conformance.
+test-conformance-table: install
+	GRIP=$(shell go env GOPATH)/bin/grip test/table/run.sh
+
 # Starts one resource node per SWAPI label plus a central server, then runs the
 # conformance suite read-only against the federated graph. The index, pivot and
 # schema modules need a writable graph or the fhir data set.

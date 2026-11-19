@@ -38,7 +38,19 @@ import (
 	_ "github.com/bmeg/grip/kvi/pebbledb" // import so pebbledb will register itself
 	"github.com/bmeg/grip/mongo"
 	"github.com/bmeg/grip/psql"
+	"github.com/bmeg/grip/table"
+	"github.com/bmeg/grip/table/filetable"
 )
+
+func init() {
+	_ = table.RegisterFactory("filetable", func(ctx context.Context, config map[string]interface{}) (table.TableDriver, error) {
+		dir, _ := config["dir"].(string)
+		if dir == "" {
+			return nil, fmt.Errorf("%w: filetable dir is required", table.ErrInvalidRequest)
+		}
+		return filetable.New(dir)
+	})
+}
 
 // GripServer is a GRPC based grip server
 type GripServer struct {
@@ -173,7 +185,9 @@ func NewGripServer(conf *config.Config, baseDir string, drivers map[string]gdbi.
 
 // StartDriver: based on string entry in config file, figure out which driver to initialize
 func StartDriver(d config.DriverConfig, sources *gripper.Registry) (gdbi.GraphDB, error) {
-	if d.Bolt != nil {
+	if d.Table != nil {
+		return table.NewConfiguredGraphDB(context.Background(), *d.Table)
+	} else if d.Bolt != nil {
 		return kvgraph.NewKVGraphDB("bolt", *d.Bolt)
 	} else if d.Badger != nil {
 		return kvgraph.NewKVGraphDB("badger", *d.Badger)
