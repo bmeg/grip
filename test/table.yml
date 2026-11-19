@@ -1,0 +1,10 @@
+Default: table
+
+Drivers:
+  table:
+    Table:
+      Driver: filetable
+      Config:
+        dir: conformance/graphs
+      Graphs:
+        - graph: swapi

@@ -39,7 +39,18 @@ import (
 	"github.com/bmeg/grip/mongo"
 	"github.com/bmeg/grip/psql"
 	"github.com/bmeg/grip/table"
+	"github.com/bmeg/grip/table/filetable"
 )
+
+func init() {
+	_ = table.RegisterFactory("filetable", func(ctx context.Context, config map[string]interface{}) (table.TableDriver, error) {
+		dir, _ := config["dir"].(string)
+		if dir == "" {
+			return nil, fmt.Errorf("%w: filetable dir is required", table.ErrInvalidRequest)
+		}
+		return filetable.New(dir)
+	})
+}
 
 // GripServer is a GRPC based grip server
 type GripServer struct {

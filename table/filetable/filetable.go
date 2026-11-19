@@ -214,6 +214,10 @@ func (d *Driver) Scan(ctx context.Context, collection string, options griptable.
 	out := make(chan griptable.RowResult)
 	go func() {
 		defer close(out)
+		if err := ctx.Err(); err != nil {
+			out <- griptable.RowResult{Err: err}
+			return
+		}
 		start := 0
 		if options.Cursor != "" {
 			if cursor, err := strconv.Atoi(options.Cursor); err == nil && cursor >= 0 {
@@ -225,6 +229,10 @@ func (d *Driver) Scan(ctx context.Context, collection string, options griptable.
 		}
 		sent := 0
 		for _, row := range rows[start:] {
+			if err := ctx.Err(); err != nil {
+				out <- griptable.RowResult{Err: err}
+				return
+			}
 			if options.Limit > 0 && sent >= options.Limit {
 				return
 			}

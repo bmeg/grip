@@ -31,6 +31,13 @@ type Config struct {
 // Factory creates a table driver for a server configuration.
 type Factory func(context.Context, map[string]interface{}) (TableDriver, error)
 
+// MappingDiscoverer lets a table backend derive graph mappings from a graph name.
+// File-backed and metadata-rich backends can use this for configuration that
+// contains only a graph name.
+type MappingDiscoverer interface {
+	DiscoverMapping(graphName string) (Mapping, error)
+}
+
 var factoryMu sync.RWMutex
 var factories = map[string]Factory{}
 
@@ -116,7 +123,19 @@ func NewGraphDB(ctx context.Context, driver TableDriver, config Config) (gdbi.Gr
 		seen[graphConfig.Graph] = true
 	}
 	for _, graphConfig := range config.Graphs {
-		graph, err := NewGraph(ctx, driver, graphConfig.Mapping)
+		mapping := graphConfig.Mapping
+		if len(mapping.Vertices) == 0 && len(mapping.Edges) == 0 {
+			discoverer, ok := driver.(MappingDiscoverer)
+			if !ok {
+				return nil, fmt.Errorf("building table graph %q: mapping is empty and driver does not discover mappings", graphConfig.Graph)
+			}
+			discovered, err := discoverer.DiscoverMapping(graphConfig.Graph)
+			if err != nil {
+				return nil, fmt.Errorf("building table graph %q: %w", graphConfig.Graph, err)
+			}
+			mapping = discovered
+		}
+		graph, err := NewGraph(ctx, driver, mapping)
 		if err != nil {
 			return nil, fmt.Errorf("building table graph %q: %w", graphConfig.Graph, err)
 		}
